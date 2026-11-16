@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Юки GPT</title>
+<style>
+:root{--bg:#0d0f1a;--panel:#171a2b;--me:#6d5dfc;--me-t:#fff;--bot:#1f2338;--text:#e8eaff;--muted:#8a90b8;--line:#ffffff1a;
+box-sizing:border-box;color-scheme:dark;padding-top:env(safe-area-inset-top,0px)}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f4f5ff;--panel:#fff;--bot:#e9ebff;--text:#161830;--muted:#6a6f99;--line:#0000001a;color-scheme:light}}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;display:flex;flex-direction:column}
+header{padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);background:var(--panel)}
+.ava{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6d5dfc,#ff7ad9);display:grid;place-items:center;font-size:18px}
+header b{font-size:16px}header small{display:block;color:var(--muted);font-size:12px}
+#log{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+.m{max-width:85%;padding:10px 14px;border-radius:18px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word;font-size:15px}
+.u{align-self:flex-end;background:var(--me);color:var(--me-t);border-bottom-right-radius:4px}
+.b{align-self:flex-start;background:var(--bot);border-bottom-left-radius:4px}
+.err{color:#ff8a8a}
+#bar{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));background:var(--panel);border-top:1px solid var(--line)}
+textarea{flex:1;resize:none;border:1px solid var(--line);background:var(--bg);color:var(--text);border-radius:20px;padding:10px 14px;font:inherit;font-size:16px;max-height:120px;outline:none}
+button{border:0;border-radius:50%;width:44px;height:44px;background:var(--me);color:#fff;font-size:18px}
+button:disabled{opacity:.5}
+#chips{display:flex;gap:8px;padding:8px 12px;overflow-x:auto;background:var(--panel);border-bottom:1px solid var(--line)}
+#chips button{width:auto;height:auto;border-radius:16px;padding:7px 14px;font-size:14px;background:var(--bot);color:var(--text);white-space:nowrap}
+#chips button.on{background:var(--me);color:#fff}
+.vid{max-width:100%;border-radius:12px;display:block}
+.m:has(.app){max-width:100%;width:100%}
+.app{margin-top:8px}.app iframe{width:100%;height:420px;border:0;border-radius:12px;background:#fff;display:block}.app .x{display:none}
+.app.fs{position:fixed;inset:0;z-index:50;background:#fff;margin:0;padding-top:env(safe-area-inset-top,0px)}.app.fs iframe{height:100%;border-radius:0}
+.app.fs .x{display:block;position:fixed;top:calc(8px + env(safe-area-inset-top,0px));right:8px;width:40px;height:40px;z-index:51}
+#clip{background:var(--bot);color:var(--text);flex:none}
+.th{max-width:160px;border-radius:12px;display:block;margin-bottom:6px}
+.row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.row button{width:auto;height:auto;border-radius:14px;padding:8px 12px;font-size:14px}
+</style>
+</head>
+<body>
+<header><div class="ava" id="ava">❄️</div><div><b id="nm">Юки GPT</b><small id="tg">умный ИИ-помощник</small></div></header>
+<div id="chips"><button data-m="chat" class="on">💬 Чат</button><button data-m="video">🎬 Видео</button><button data-m="ai">🤖 Создать ИИ</button><button data-m="bear">🧸 Мишка</button><button data-m="load">📂 Открыть ИИ</button><button data-m="anime">🌸 Аниме</button><button data-m="game">🎮 Игра</button><button data-m="app">📱 Приложение</button><button data-m="img">🎨 Картинка</button><button data-m="yuki">❄️ Юки</button></div>
+<div id="log"><div class="m b">Привет! Я Юки GPT ❄️ Спрашивай что угодно: помогу с учёбой, кодом, идеями и просто поболтаю. Команды: /image описание, /video описание, /photo вопрос (сначала 📎), /exit.</div></div>
+<div id="bar"><button id="clip" title="Прикрепить фото">📎</button><input type="file" id="file" accept="image/*,.txt,.md,.csv,.json,.js,.py,.html,.css,.xml,.pdf,.doc,.docx,text/*" hidden><input type="file" id="file2" accept=".json,application/json" hidden><textarea id="t" rows="1" placeholder="Напиши Юки..."></textarea><button id="s">➤</button></div>
+<script>window.claude=window.claude||{use:async()=>null};
+let SYS='Ты Юки GPT — универсальный искусственный интеллект. Всегда представляйся как Юки GPT, если спросят имя. Твои возможности: 1) понимать человеческую речь; 2) анализировать сложные описания; 3) общаться естественно; 4) помнить контекст разговора; 5) анализировать фотографии и понимать детали изображений; 6) помогать с программированием, математикой, наукой и повседневными задачами. Ты отлично разбираешься в играх, особенно в Roblox и его плейсах: Blox Fruits, Adopt Me, Brookhaven, Pet Simulator, Murder Mystery 2, Tower of Hell, Doors, Grow a Garden и других: механики, фрукты и питомцы, билды, прокачка, лор, мини-игры, создание игр в Roblox Studio (Luau). Если не уверена в актуальных деталях (обновления, ценность предметов, коды, баланс), честно скажи, что это могло измениться, и посоветуй проверить в игре или на вики. Правила: думай внимательно и по шагам, проверяй себя, признавай неуверенность, давай конкретные примеры и готовый код; ты умеешь создавать приложения (/app), видео (/video) и картинки (/image); отвечай на языке пользователя (по умолчанию по-русски); не выдумывай информацию; следуй инструкциям пользователя; если запрос непонятен, уточняй детали; старайся давать качественные, понятные и тёплые ответы без лишней воды.';
+const log=document.getElementById('log'),t=document.getElementById('t'),s=document.getElementById('s');
+const hist=[];let sample=null,busy=false;
+claude.use('sample').then(x=>{sample=x}).catch(()=>{});
+function add(cls,txt){const d=document.createElement('div');d.className='m '+cls;d.textContent=txt;log.appendChild(d);log.scrollTop=log.scrollHeight;return d}
+async function send(){
+  const q=t.value.trim()||(photo&&mode==='chat'?'Что на этом фото?':mode==='bear'?'новый случайный мишка':'');if(!q||busy)return;
+  if(mode!=='anime')window.STY='';
+  if(/^(характер|\/char)[:\s]/i.test(q)){const v=q.replace(/^(характер|\/char)[:\s]*/i,'').trim();t.value='';cfg.cust=v;applyCfg();add('u',q);add('b',v?'Характер изменён 🎭: '+v:'Характер сброшен 🎭');return}
+  if(/^(запомни|\/memory)[:\s]/i.test(q)){const v=q.replace(/^(запомни|\/memory)[:\s]*/i,'').trim();t.value='';if(v){memAdd(v);add('u',q);add('b','Запомнила 🧠: '+v)}return}
+  if(q==='/exit'){t.value='';hist.length=0;log.innerHTML='';add('b','Диалог очищен. Начнём заново ❄️');return}
+  if(q.startsWith('/image '))return makeImage(q.slice(7).trim());
+  if(q.startsWith('/video '))return makeVideo(q.slice(7).trim());
+  if(q==='/photo'||q.startsWith('/photo ')){
+    if(!photo){t.value='';add('b','Сначала нажми 📎 и выбери фото, потом напиши /photo и вопрос.');return}
+    t.value=q.slice(6).trim()||'Что на этом фото?';return send();
+  }
+  if(mode==='chat'){
+    if(q.startsWith('/app '))return makeApp(q.slice(5).trim());
+    if(/аниме/i.test(q)&&/(нарисуй|сгенерируй|создай|сделай)/i.test(q))return makeAnime(q);
+    if(/(сделай|создай|напиши|разработай).{0,25}(приложени|игр[уаы]|сайт|калькулятор|трекер)/i.test(q))return makeApp(q,/игр/i.test(q));
+    if(/(сними|сделай|создай).{0,20}(видео|видос|ролик|мульт)/i.test(q))return makeVideo(q);
+    if(/(нарисуй|сгенерируй|создай).{0,20}(картинк|фото|изображени|рисун)/i.test(q))return makeImage(q);
+  }
+  if(mode==='app')return makeApp(q);
+  if(mode==='game')return makeApp(q,true);
+  if(mode==='anime')return makeAnime(q);
+  if(mode==='video')return makeVideo(q);
+  if(mode==='ai')return makeAI(q);
+  if(mode==='bear')return makeBear(q);
+  if(mode==='img')return makeImage(q);
+  if(!sample)sample=await claude.use('sample');
+  if(!sample){add('b err','Не удалось подключить ИИ. Открой страницу в приложении Claude.');return}
+  t.value='';t.style.height='auto';busy=true;s.disabled=true;
+  const ud=add('u',q);const imgs=photo?[photo.blob]:[];if(photo){thumb(ud);dropPhoto()}hist.push({role:'user',content:q+(doc?'\n\n[Файл '+doc.name+']\n'+doc.text:'')+(imgs.length?' [пользователь приложил фото]':'')});if(doc){doc=null;clip.textContent='📎'}
+  const out=add('b','…');
+  const msgs=hist.map((m,i)=>i===0?{role:'user',content:SYS+extra()+'\n\n'+m.content}:m);
+  try{
+    const r=await sample(msgs,{cache:false,modelTier:cfg.tier,images:imgs.length?imgs:undefined,onText:({text})=>{out.textContent=text;log.scrollTop=log.scrollHeight}});
+    out.textContent=r.text;hist.push({role:'assistant',content:r.text});speak(r.text);
+  }catch(e){
+    out.classList.add('err');out.textContent=e.code==='not_granted'?'Нужно разрешение на использование ИИ.':e.code==='rate_limited'?'Слишком много запросов, подожди немного.':'Ошибка, попробуй ещё раз.';hist.pop();
+  }
+  busy=false;s.disabled=false;t.focus();
+}
+const DEF=SYS,nm=document.getElementById('nm'),tg=document.getElementById('tg'),av=document.getElementById('ava');
+let mode='chat';
+const PH={chat:'Напиши...',video:'Опиши видео: «ракета летит к Луне»',ai:'Опиши ИИ: кто он и как общается',bear:'Какого мишку нарисовать? (или просто жми ➤)',img:'Что нарисовать? Например: «котёнок на Луне»',app:'Какое приложение сделать? Например: «туду-лист с таймером»',game:'Какую игру сделать? Например: «змейка с рекордами»',anime:'Опиши аниме-персонажа: волосы, глаза, одежда, фон'};
+function setMode(m){
+  if(m==='load'){document.getElementById('file2').click();return}
+  if(m==='yuki'){SYS=DEF;hist.length=0;nm.textContent='Юки GPT';tg.textContent='умный ИИ-помощник';av.textContent='❄️';add('b','Я снова Юки GPT ❄️');m='chat'}
+  mode=m;t.placeholder=PH[m];
+  document.querySelectorAll('#chips button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+}
+document.querySelectorAll('#chips button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+function fail(out,e){out.classList.add('err');out.textContent=e&&e.code==='not_granted'?'Нужно разрешение на использование ИИ.':e&&e.code==='rate_limited'?'Слишком много запросов, подожди немного.':'Не получилось, попробуй описать иначе.'}
+async function getSample(){if(!sample)sample=await claude.use('sample');return sample}
+
+async function makeAI(q){
+  if(!await getSample()){add('b err','ИИ недоступен в этом окне.');return}
+  t.value='';busy=true;s.disabled=true;add('u',q);const out=add('b','Создаю ИИ…');
+  try{
+    const p=await sample.json('Создай ИИ-персонажа по описанию: «'+q+'». Верни ТОЛЬКО JSON: {"name":"имя","emoji":"один эмодзи","tagline":"короткий слоган","prompt":"подробная инструкция для этого ИИ на русском: кто он, характер, стиль речи, что умеет, правила"}',{cache:false});
+    out.textContent='Готово! ИИ «'+p.name+'» '+(p.emoji||'')+' создан, а я остаюсь с тобой. Вот файл с ним:';
+    const row=document.createElement('div');row.className='row';
+    const dl=await claude.use('downloads');
+    if(dl){const b=document.createElement('button');b.textContent='⬇ Скачать ИИ (.json)';b.onclick=()=>dl.save({filename:'ai-'+p.name+'.json',data:JSON.stringify(p,null,2)}).catch(()=>{});row.appendChild(b)}
+    const ch=document.createElement('button');ch.textContent='💬 Поговорить с ним';ch.onclick=()=>usePersona(p);row.appendChild(ch);
+    out.appendChild(row);log.scrollTop=log.scrollHeight;
+  }catch(e){fail(out,e)}
+  busy=false;s.disabled=false;
+}
+
+const CW=640,CH=360,ease=x=>x*x*(3-2*x);
+function pose(keys,tm){
+  keys=keys&&keys.length?keys:[{t:0}];let a=keys[0],b=keys[keys.length-1];
+  if(tm<=a.t)b=a;else if(tm>=b.t)a=b;else for(let i=0;i<keys.length-1;i++)if(tm>=keys[i].t&&tm<=keys[i+1].t){a=keys[i];b=keys[i+1];break}
+  const k=b.t>a.t?ease(Math.min(1,Math.max(0,(tm-a.t)/(b.t-a.t)))):0;
+  const g=(n,d)=>{const x=+(a[n]??d),y=+(b[n]??d);return x+(y-x)*k};
+  return{x:g('x',.5),y:g('y',.5),s:g('s',1),o:g('o',1),r:g('r',0)}
+}
+function drawScene(c,sc,tm){
+  const bg=sc.bg||['#0b1030','#3a1c71'],gr=c.createLinearGradient(0,0,0,CH);
+  gr.addColorStop(0,bg[0]);gr.addColorStop(1,bg[1]||bg[0]);c.globalAlpha=1;c.fillStyle=gr;c.fillRect(0,0,CW,CH);
+  for(const it of(sc.items||[]).slice(0,14)){
+    const p=pose(it.keys,tm),z=+it.size||30;c.save();
+    c.globalAlpha=Math.max(0,Math.min(1,p.o));c.translate(p.x*CW,p.y*CH);c.rotate(p.r*Math.PI/180);c.scale(p.s,p.s);
+    c.fillStyle=it.color||'#fff';c.textAlign='center';c.textBaseline='middle';
+    if(it.type==='text'){c.font='bold '+z+'px system-ui,sans-serif';c.fillText(String(it.text||''),0,0)}
+    else if(it.type==='emoji'){c.font=(z*2)+'px sans-serif';c.fillText(String(it.text||'⭐'),0,0)}
+    else if(it.type==='photo'&&photo){const w=z*4,h=w*photo.img.height/photo.img.width;c.drawImage(photo.img,-w/2,-h/2,w,h)}
+    else if(it.type==='rect')c.fillRect(-z,-z*.6,z*2,z*1.2);
+    else if(it.type==='star'){c.beginPath();for(let i=0;i<10;i++){const r=i%2?z*.45:z,an=i*Math.PI/5-Math.PI/2;c.lineTo(Math.cos(an)*r,Math.sin(an)*r)}c.closePath();c.fill()}
+    else{c.beginPath();c.arc(0,0,z,0,6.283);c.fill()}
+    c.restore();
+  }
+}
+function play(c,sc,dur){
+  return new Promise(res=>{const t0=performance.now();(function f(){const tm=(performance.now()-t0)/1000;drawScene(c,sc,Math.min(tm,dur));tm<dur?requestAnimationFrame(f):res()})()});
+}
+async function makeVideoOld(q,skip){
+  if(!await getSample()){add('b err','ИИ недоступен в этом окне.');return}
+  t.value='';busy=true;s.disabled=true;if(!skip)add('u',q);const out=add('b','Снимаю видео… 🎬');
+  try{
+    const sc=await sample.json('Ты режиссёр коротких анимаций. Сделай сцену по описанию: «'+q+'».'+(photo?' Есть фото пользователя: добавь элемент type "photo" (size 40-90, ширина = size*4 пикселей) и красиво анимируй его.':'')+' Верни ТОЛЬКО JSON: {"duration":секунды 4-8,"bg":["#цвет сверху","#цвет снизу"],"items":[{"type":"text|emoji|circle|rect|star","text":"для text и emoji","color":"#hex","size":10-80,"keys":[{"t":секунды,"x":0-1,"y":0-1,"s":масштаб,"o":0-1,"r":градусы}]}]}. Холст 640x360, x и y в долях 0-1. Не больше 12 элементов, у каждого 2-5 ключей с возрастающим t, движение заметное и красивое. Используй emoji для героев, звёзды для фона и заголовок text.',{cache:false,images:photo?[photo.blob]:undefined});
+    const dur=Math.min(12,Math.max(2,+sc.duration||6));
+    const cv2=document.createElement('canvas');cv2.width=CW;cv2.height=CH;cv2.className='vid';
+    out.textContent='';out.appendChild(cv2);log.scrollTop=log.scrollHeight;
+    const c=cv2.getContext('2d');
+    const mime=window.MediaRecorder&&['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm'].find(m=>MediaRecorder.isTypeSupported(m));
+    let blob=null;
+    if(mime){
+      const rec=new MediaRecorder(cv2.captureStream(30),{mimeType:mime}),ch=[];
+      rec.ondataavailable=e=>e.data.size&&ch.push(e.data);
+      const done=new Promise(r=>rec.onstop=r);
+      rec.start();await play(c,sc,dur);rec.stop();await done;
+      blob=new Blob(ch,{type:mime.split(';')[0]});
+    }else await play(c,sc,dur);
+    const row=document.createElement('div');row.className='row';
+    const rp=document.createElement('button');rp.textContent='▶ Ещё раз';rp.onclick=()=>play(c,sc,dur);row.appendChild(rp);
+    if(blob){
+      const dl=await claude.use('downloads');
+      if(dl){const b=document.createElement('button');b.textContent='⬇ Скачать видео';b.onclick=()=>dl.save({filename:'yuki-video.'+vext(blob),data:blob}).catch(()=>{});row.appendChild(b)}
+    }
+    out.appendChild(row);
+  }catch(e){fail(out,e)}
+  busy=false;s.disabled=false;
+}
+
+let photo=null,doc=null;const fi=document.getElementById('file'),clip=document.getElementById('clip');
+clip.onclick=()=>{if(photo||doc){dropPhoto();doc=null}else fi.click()};
+function dropPhoto(){photo=null;clip.textContent='📎'}
+function thumb(d){if(!photo)return;const i=document.createElement('img');i.src=photo.url;i.className='th';d.prepend(i)}
+fi.onchange=()=>{const f=fi.files[0];fi.value='';if(!f)return;
+  if(!f.type.startsWith('image/')){
+    if(/\.(pdf|docx?)$/i.test(f.name)){add('b','PDF и Word я пока не умею читать. Скопируй нужный текст или сохрани файл как .txt.');return}
+    f.text().then(tx=>{doc={name:f.name,text:tx.slice(0,30000)};clip.textContent='📄';add('b','Файл «'+f.name+'» прикреплён. Спроси что-нибудь про него.')});return}
+  const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const k=Math.min(1,1024/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext('2d').drawImage(img,0,0,c.width,c.height);c.toBlob(b=>{photo={blob:b,url:c.toDataURL('image/jpeg',.8),img:c};clip.textContent='🖼️'},'image/jpeg',.85)};img.src=r.result};r.readAsDataURL(f)};
+
+function drawBear(p){
+  const c=document.createElement('canvas');c.width=c.height=600;const x=c.getContext('2d');
+  const bg=p.bg||['#ffd1e8','#c9b6ff'],g=x.createLinearGradient(0,0,0,600);g.addColorStop(0,bg[0]);g.addColorStop(1,bg[1]||bg[0]);x.fillStyle=g;x.fillRect(0,0,600,600);
+  const fur=p.fur||'#b87a45',belly=p.belly||'#f3d3a8',ear=p.ear||belly,ac=p.accColor||'#e63946';
+  const cir=(a,b,r,col)=>{x.beginPath();x.arc(a,b,r,0,6.283);x.fillStyle=col;x.fill()};
+  const ell=(a,b,rx,ry,col)=>{x.beginPath();x.ellipse(a,b,rx,ry,0,0,6.283);x.fillStyle=col;x.fill()};
+  ell(300,430,120,130,fur);ell(300,450,75,90,belly);
+  cir(190,380,42,fur);cir(410,380,42,fur);cir(230,545,48,fur);cir(370,545,48,fur);cir(230,550,26,belly);cir(370,550,26,belly);
+  cir(205,175,52,fur);cir(395,175,52,fur);cir(205,178,30,ear);cir(395,178,30,ear);
+  cir(300,250,115,fur);ell(300,285,55,42,belly);
+  cir(255,235,12,'#222');cir(345,235,12,'#222');cir(259,231,4,'#fff');cir(349,231,4,'#fff');ell(300,268,17,12,'#3a2418');
+  x.strokeStyle='#3a2418';x.lineWidth=4;x.lineCap='round';x.beginPath();x.moveTo(300,280);x.lineTo(300,292);x.moveTo(280,298);x.quadraticCurveTo(300,314,320,298);x.stroke();
+  x.globalAlpha=.35;cir(228,275,16,'#ff6b8a');cir(372,275,16,'#ff6b8a');x.globalAlpha=1;
+  x.fillStyle=ac;
+  if(p.acc==='hat'){ell(300,150,95,18,ac);x.fillRect(240,70,120,85);ell(300,70,60,14,ac)}
+  else if(p.acc==='crown'){x.beginPath();x.moveTo(235,150);x.lineTo(235,95);x.lineTo(268,125);x.lineTo(300,80);x.lineTo(332,125);x.lineTo(365,95);x.lineTo(365,150);x.closePath();x.fill()}
+  else if(p.acc==='glasses'){x.strokeStyle=ac;x.lineWidth=6;x.beginPath();x.arc(255,235,26,0,6.283);x.moveTo(371,235);x.arc(345,235,26,0,6.283);x.moveTo(281,235);x.lineTo(319,235);x.stroke()}
+  else if(p.acc==='bow'){x.beginPath();x.moveTo(300,360);x.lineTo(250,330);x.lineTo(250,390);x.closePath();x.moveTo(300,360);x.lineTo(350,330);x.lineTo(350,390);x.closePath();x.fill();cir(300,360,13,ac)}
+  x.textAlign='center';x.textBaseline='middle';x.font='64px sans-serif';x.fillText(p.extra||'✨',520,90);
+  x.fillStyle='#fff';x.font='bold 32px system-ui,sans-serif';x.shadowColor='#0007';x.shadowBlur=6;x.fillText(String(p.name||'Мишка').slice(0,24),300,36);
+  return c;
+}
+async function makeBear(q){
+  if(!await getSample()){add('b err','ИИ недоступен в этом окне.');return}
+  t.value='';busy=true;s.disabled=true;add('u',q);const out=add('b','Рисую мишку… 🧸');
+  try{
+    const p=await sample.json('Придумай нового уникального плюшевого мишку по запросу: «'+q+'». Верни ТОЛЬКО JSON: {"name":"имя мишки","fur":"#hex мех","belly":"#hex живот","ear":"#hex внутри ушей","bg":["#hex","#hex"],"acc":"hat|bow|glasses|crown|none","accColor":"#hex","extra":"один эмодзи","motto":"короткая фраза до 40 символов"}. Цвета яркие и приятные, каждый раз новые.',{cache:false});
+    const cv2=drawBear(p);cv2.className='vid';
+    out.textContent=p.name+(p.motto?' — «'+p.motto+'»':'');out.appendChild(document.createElement('br'));out.appendChild(cv2);log.scrollTop=log.scrollHeight;
+    const row=document.createElement('div');row.className='row';
+    const more=document.createElement('button');more.textContent='🧸 Ещё одного';more.onclick=()=>{if(!busy)makeBear('совсем другой новый мишка')};row.appendChild(more);
+    const dl=await claude.use('downloads');
+    if(dl){const b=document.createElement('button');b.textContent='⬇ Скачать PNG';b.onclick=()=>cv2.toBlob(bl=>dl.save({filename:'mishka-'+(p.name||'bear')+'.png',data:bl}).catch(()=>{}),'image/png');row.appendChild(b)}
+    addShare(row,()=>new Promise(r=>cv2.toBlob(r,'image/png')),'mishka.png','image/png');
+    out.appendChild(row);
+  }catch(e){fail(out,e)}
+  busy=false;s.disabled=false;
+}
+
+document.getElementById('file2').onchange=function(){
+  const f=this.files[0];this.value='';if(!f)return;
+  f.text().then(tx=>{
+    const p=JSON.parse(tx);if(!p||typeof p.prompt!=='string')throw 0;
+    SYS=p.prompt+' Отвечай на языке пользователя.';hist.length=0;
+    nm.textContent=String(p.name||'ИИ');tg.textContent=String(p.tagline||'');av.textContent=String(p.emoji||'🤖');
+    setMode('chat');add('b','ИИ «'+nm.textContent+'» '+av.textContent+' загружен из файла. Можно общаться!');
+  }).catch(()=>add('b err','Это не похоже на файл ИИ из Юки.'));
+};
+
+function usePersona(p){
+  SYS=p.prompt+' Отвечай на языке пользователя.';hist.length=0;
+  nm.textContent=String(p.name||'ИИ');tg.textContent=String(p.tagline||'');av.textContent=String(p.emoji||'🤖');
+  setMode('chat');add('b','Привет! Я '+nm.textContent+' '+av.textContent+'. Кнопка «❄️ Юки» вернёт Юки.');
+}
+async function makeImage(q){
+  if(!await getSample()){add('b err','ИИ недоступен в этом окне.');return}
+  t.value='';busy=true;s.disabled=true;add('u',q);const out=add('b','Рисую… 🎨');
+  try{
+    const r=await sample('Ты талантливый художник. Нарисуй яркую красивую иллюстрацию в формате SVG по описанию: «'+q+'». Требования: атрибут xmlns, viewBox="0 0 800 600", градиенты, тени, много деталей и слоёв, без внешних ссылок и скриптов, текст только если просили. Верни ТОЛЬКО код SVG.'+(photo?' Вдохновись приложенным фото.':''),{cache:false,modelTier:'complex',images:photo?[photo.blob]:undefined});
+    const m=r.text.match(/<svg[\s\S]*<\/svg>/i);if(!m)throw 0;
+    let svg=m[0];if(!/xmlns=/.test(svg))svg=svg.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
+    const img=new Image();
+    await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg)});
+    const c=document.createElement('canvas');c.width=1024;c.height=768;c.className='vid';c.getContext('2d').drawImage(img,0,0,1024,768);
+    out.textContent='';out.appendChild(c);log.scrollTop=log.scrollHeight;
+    const row=document.createElement('div');row.className='row';
+    const more=document.createElement('button');more.textContent='🎨 Ещё вариант';more.onclick=()=>{if(!busy)makeImage(q)};row.appendChild(more);
+    const dl=await claude.use('downloads');
+    if(dl){const b=document.createElement('button');b.textContent='⬇ Скачать PNG';b.onclick=()=>c.toBlob(bl=>dl.save({filename:'yuki-art.png',data:bl}).catch(()=>{}),'image/png');row.appendChild(b)}
+    addShare(row,()=>new Promise(r=>c.toBlob(r,'image/png')),'yuki-art.png','image/png');
+    out.appendChild(row);
+  }catch(e){fail(out,e)}
+  busy=false;s.disabled=false;
+}
+
+async function makeImage(q){
+  if(!await getSample()){add('b err','ИИ недоступен в этом окне.');return}
+  t.value='';busy=true;s.disabled=true;add('u',q);const out=add('b','Рисую… 🎨');
+  try{
+    let img=null,why='';
+    for(let k=0;k<3&&!img;k++){
+      const rules=k===0?'до 60 фигур, ':'очень простая композиция, до 25 фигур, ';
+      let r;
+      try{r=await sample('Ты художник. Нарисуй цветную иллюстрацию в SVG по описанию: «'+q+'».'+(window.STY||'')+' Правила: корень <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">, '+rules+'линейные и радиальные градиенты, компактный код (не длиннее 5000 символов), без текста, без внешних ссылок, скриптов и символа &. Верни ТОЛЬКО код SVG без пояснений.'+(photo?' Вдохновись приложенным фото.':''),{cache:false,images:photo?[photo.blob]:undefined})}
+      catch(e){if(e&&(e.code==='not_granted'||e.code==='rate_limited'))throw e;why=String(e&&(e.message||e.code)||e);continue}
+      let sv=(r.text.match(/<svg[\s\S]*<\/svg>/i)||[''])[0];
+      if(!sv){why='нет SVG в ответе';continue}
+      sv=sv.replace(/<script[\s\S]*?<\/script>/gi,'').replace(/&(?!amp;|lt;|gt;|quot;|apos;|#)/g,'&amp;');
+      if(!/xmlns=/.test(sv))sv=sv.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
+      sv=sv.replace(/<svg([^>]*)>/i,(m0,a)=>'<svg'+a.replace(/\s(width|height)="[^"]*"/g,'')+' width="800" height="600">');
+      const im=new Image();
+      const ok=await new Promise(res=>{im.onload=()=>res(true);im.onerror=()=>res(false);im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(sv)});
+      if(ok)img=im;else why='картинка не загрузилась';
+    }
+    if(!img)throw new Error(why||'неизвестная ошибка');
+    const c=document.createElement('canvas');c.width=1024;c.height=768;c.className='vid';c.getContext('2d').drawImage(img,0,0,1024,768);
+    out.textContent='';out.appendChild(c);log.scrollTop=log.scrollHeight;
+    const row=document.createElement('div');row.className='row';
+    const more=document.createElement('button');more.textContent='🎨 Ещё вариант';more.onclick=()=>{if(!busy)makeImage(q)};row.appendChild(more);
+    const dl=await claude.use('downloads');
+    if(dl){const b=document.createElement('button');b.textContent='⬇ Скачать PNG';b.onclick=()=>c.toBlob(bl=>dl.save({filename:'yuki-art.png',data:bl}).catch(()=>{}),'image/png');row.appendChild(b)}
+    addShare(row,()=>new Promise(r=>c.toBlob(r,'image/png')),'yuki-art.png','image/png');
+    out.appendChild(row);
+  }catch(e){fail(out,e);if(e&&e.message&&!e.code)out.textContent+=' ['+e.message+']'}
+  busy=false;s.disabled=false;
+}
+
+let T3=null;
+function load3(){return T3||(T3=new Promise((res,rej)=>{if(window.THREE)return res();const e=document.createElement('script');e.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';e.onload=res;e.onerror=rej;document.head.appendChild(e)}))}
+async function run3D(q,out){
+  try{
+    await load3();
+    const mk=cv=>{const r=new THREE.WebGLRenderer({canvas:cv,antialias:true,preserveDrawingBuffer:true});r.setSize(CW,CH,false);return r};
+    let code='',dur=6,ok=false;
+    for(let k=0;k<2&&!ok;k++){
+      const r=await sample('Ты опытный 3D-разработчик на three.js (r128, глобальная THREE). Сделай красивое короткое 3D-видео по описанию: «'+q+'». Напиши ТОЛЬКО тело JS-функции init(THREE,renderer,W,H), которая создаёт scene, camera, свет (ambient+point), объекты (Sphere/Box/Torus/Cylinder/Cone, MeshStandardMaterial с яркими цветами, звёзды через Points) и ВОЗВРАЩАЕТ функцию frame(t): по времени t (секунды) двигает объекты и камеру и вызывает renderer.render(scene,camera). renderer уже создан, W=640, H=360. Без CapsuleGeometry и OrbitControls, детерминированно (не Math.random), без document/window/fetch. Первой строкой ответа DURATION: число секунд (4-10), потом код в блоке ```js.',{cache:false,modelTier:'complex'});
+      dur=Math.min(12,Math.max(3,+((r.text.match(/DURATION:\s*(\d+)/)||[])[1])||6));
+      const m=r.text.match(/```(?:js|javascript)?\s*([\s\S]*?)(?:```|$)/);code=m?m[1]:'';
+      if(!code||/document|window|fetch|XMLHttp|claude|eval|localStorage|Function/.test(code))continue;
+      try{const tc=document.createElement('canvas');tc.width=CW;tc.height=CH;const rt=mk(tc);const f=new Function('THREE','renderer','W','H',code)(THREE,rt,CW,CH);f(dur/2);rt.dispose();ok=true}catch(e){}
+    }
+    if(!ok)return false;
+    const cv2=document.createElement('canvas');cv2.width=CW;cv2.height=CH;cv2.className='vid';
+    out.textContent='';out.appendChild(cv2);log.scrollTop=log.scrollHeight;
+    const frame=new Function('THREE','renderer','W','H',code)(THREE,mk(cv2),CW,CH);
+    const run=()=>new Promise(res=>{const t0=performance.now();(function f(){const tm=(performance.now()-t0)/1000;try{frame(Math.min(tm,dur))}catch(e){}tm<dur?requestAnimationFrame(f):res()})()});
+    const mime=window.MediaRecorder&&['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm'].find(m=>MediaRecorder.isTypeSupported(m));
+    let blob=null;
+    if(mime){
+      const rec=new MediaRecorder(cv2.captureStream(30),{mimeType:mime}),ch=[];
+      rec.ondataavailable=e=>e.data.size&&ch.push(e.data);
+      const done=new Promise(r=>rec.onstop=r);
+      rec.start();await run();rec.stop();await done;blob=new Blob(ch,{type:mime.split(';')[0]});
+    }else await run();
+    const row=document.createElement('div');row.className='row';
+    const rp=document.createElement('button');rp.textContent='▶ Ещё раз';rp.onclick=()=>run();row.appendChild(rp);
+    if(blob){const dl=await claude.use('downloads');if(dl){const b=document.createElement('button');b.textContent='⬇ Скачать видео';b.onclick=()=>dl.save({filename:'yuki-3d-video.'+vext(blob),data:blob}).catch(()=>{});row.appendChild(b)}addShare(row,()=>blob,'yuki-3d-video.'+vext(blob),blob.type)}
+    out.appendChild(row);return true;
+  }catch(e){return false}
+}
+async function makeVideo(q){
+  if(!await getSample()){add('b err','ИИ недоступен в этом окне.');return}
+  t.value='';busy=true;s.disabled=true;add('u',q);const out=add('b','Снимаю видео… 🎬');
+  if(/3\s*[дd]|трёхмер|трехмер|куб|сфер|планет/i.test(q)){const ok3=await run3D(q,out);if(ok3){busy=false;s.disabled=false;return}}
+  let fn=null,dur=6;
+  try{
+    new Function('return 1')();
+    for(let k=0;k<2&&!fn;k++){
+      const r=await sample('Ты опытный разработчик canvas-анимаций. Сделай красивое короткое видео по описанию: «'+q+'». Напиши ТОЛЬКО тело JS-функции draw(c,t,W,H,PHOTO): c — 2D-контекст canvas 640x360 (W,H — размеры), t — время в секундах, сцена перерисовывается каждый кадр (сначала фон). Первой строкой ответа напиши DURATION: число секунд (4-10), потом код в блоке ```js. Требования: градиенты, частицы, свечение, плавное движение, герои из фигур и эмодзи (c.fillText), заголовок. Детерминированный псевдослучай по индексу (не Math.random), только c, t, W, H, PHOTO, Math. Без document/window/fetch.'+(photo?' Фото пользователя доступно как PHOTO (canvas): c.drawImage(PHOTO,...).':''),{cache:false,modelTier:'complex',images:photo?[photo.blob]:undefined});
+      dur=Math.min(12,Math.max(3,+((r.text.match(/DURATION:\s*(\d+)/)||[])[1])||6));
+      const m=r.text.match(/```(?:js|javascript)?\s*([\s\S]*?)(?:```|$)/),code=m?m[1]:'';
+      if(!code||/document|window|fetch|XMLHttp|import\s*\(|claude|eval|localStorage|Function/.test(code))continue;
+      try{const f=new Function('c','t','W','H','PHOTO',code),tc=document.createElement('canvas');tc.width=CW;tc.height=CH;f(tc.getContext('2d'),dur/2,CW,CH,photo?photo.img:null);fn=f}catch(e){}
+    }
+  }catch(e){}
+  if(!fn){out.remove();busy=false;s.disabled=false;return makeVideoOld(q,true)}
+  try{
+    const cv2=document.createElement('canvas');cv2.width=CW;cv2.height=CH;cv2.className='vid';
+    out.textContent='';out.appendChild(cv2);log.scrollTop=log.scrollHeight;
+    const c=cv2.getContext('2d'),ph=photo?photo.img:null;
+    const draw=tm=>{try{fn(c,tm,CW,CH,ph)}catch(e){}};
+    const run=()=>new Promise(res=>{const t0=performance.now();(function f(){const tm=(performance.now()-t0)/1000;draw(Math.min(tm,dur));tm<dur?requestAnimationFrame(f):res()})()});
+    const mime=window.MediaRecorder&&['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm'].find(m=>MediaRecorder.isTypeSupported(m));
+    let blob=null;
+    if(mime){
+      const rec=new MediaRecorder(cv2.captureStream(30),{mimeType:mime}),ch=[];
+      rec.ondataavailable=e=>e.data.size&&ch.push(e.data);
+      const done=new Promise(r=>rec.onstop=r);
+      rec.start();await run();rec.stop();await done;
+      blob=new Blob(ch,{type:mime.split(';')[0]});
+    }else await run();
+    const row=document.createElement('div');row.className='row';
+    const rp=document.createElement('button');rp.textContent='▶ Ещё раз';rp.onclick=()=>run();row.appendChild(rp);
+    if(blob){const dl=await claude.use('downloads');if(dl){const b=document.createElement('button');b.textContent='⬇ Скачать видео';b.onclick=()=>dl.save({filename:'yuki-video.'+vext(blob),data:blob}).catch(()=>{});row.appendChild(b)}addShare(row,()=>blob,'yuki-video.'+vext(blob),blob.type)}
+    out.appendChild(row);
+  }catch(e){fail(out,e)}
+  busy=false;s.disabled=false;
+}
+
+async function makeApp(q,game){
+  if(!await getSample()){add('b err','ИИ недоступен в этом окне.');return}
+  t.value='';busy=true;s.disabled=true;add('u',q);const out=add('b','Пишу приложение… 📱');
+  try{
+    const r=await sample('Ты опытный разработчик. Создай готовое красивое приложение по описанию: «'+q+'».'+(game?' Это ИГРА: управление касанием и свайпами (и клавиатурой), счёт, рекорд в переменной, экран проигрыша и кнопка «Играть снова», плавная анимация на canvas, красивая графика, постепенно растущая сложность, игровой цикл на requestAnimationFrame.':'')+' Это один самодостаточный HTML-файл (HTML+CSS+JS внутри), адаптивный под телефон, современный дизайн, работает без интернета и внешних библиотек, состояние храни в переменных (localStorage не используй). Верни ТОЛЬКО код файла в блоке ```html.'+(photo?' Учти приложенное фото.':''),{cache:false,modelTier:'complex',images:photo?[photo.blob]:undefined});
+    const m=r.text.match(/```(?:html)?\s*([\s\S]*?)(?:```|$)/);const html=m?m[1]:r.text;
+    if(!/<html|<!doctype|<body|<div/i.test(html))throw new Error('нет кода');
+    const box=document.createElement('div');box.className='app';
+    const fr=document.createElement('iframe');fr.setAttribute('sandbox','allow-scripts');fr.srcdoc=html;
+    const x=document.createElement('button');x.textContent='✕';x.className='x';x.onclick=()=>box.classList.remove('fs');
+    box.append(fr,x);out.textContent='Готово! Вот приложение:';out.appendChild(box);
+    const row=document.createElement('div');row.className='row';
+    const fs=document.createElement('button');fs.textContent='⤢ На весь экран';fs.onclick=()=>box.classList.add('fs');row.appendChild(fs);
+    const dl=await claude.use('downloads');
+    if(dl){const b=document.createElement('button');b.textContent='⬇ Скачать .html';b.onclick=()=>dl.save({filename:'yuki-app.html',data:html}).catch(()=>{});row.appendChild(b)}
+    out.appendChild(row);log.scrollTop=log.scrollHeight;
+  }catch(e){fail(out,e);if(e&&e.message&&!e.code)out.textContent+=' ['+e.message+']'}
+  busy=false;s.disabled=false;
+}
+
+/* ===== История запросов ===== */
+(()=>{
+  const st=document.createElement('style');
+  st.textContent='#hb{margin-left:auto;width:40px;height:40px;background:var(--bot);color:var(--text)}#dr{position:fixed;inset:0;z-index:60;background:var(--bg);display:none;flex-direction:column;padding:calc(10px + env(safe-area-inset-top,0px)) 12px calc(10px + env(safe-area-inset-bottom,0px));gap:10px}#dr.on{display:flex}.dh{display:flex;gap:8px;align-items:center}.dh b{flex:1;font-size:17px}.dh button,#dc{width:auto;height:auto;border-radius:16px;padding:8px 14px;font-size:14px;background:var(--bot);color:var(--text)}#dq{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:16px;padding:10px 14px;font:inherit;font-size:16px;outline:none}#dsq{display:flex;gap:6px;flex-wrap:wrap}#dsq button{width:auto;height:auto;border-radius:14px;padding:5px 10px;font-size:13px;background:var(--bot);color:var(--text)}#dl{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px}.it{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 44px 10px 14px}.it .tt{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.it small{color:var(--muted)}.it .rm{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:34px;height:34px;background:transparent;font-size:16px}.e{color:var(--muted);text-align:center}';
+  document.head.appendChild(st);
+  const GREET=log.firstElementChild.textContent;log.firstElementChild.dataset.g='1';
+  const SK='yuki:sessions',QK='yuki:searches';
+  const ld=k=>{try{return JSON.parse(localStorage.getItem(k))||[]}catch(e){return[]}};
+  const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+  let cur=null,tm=null;
+  function snap(){
+    const msgs=[];
+    for(const m of log.children){
+      if(!m.classList.contains('m')||m.dataset.g)continue;
+      const c=m.cloneNode(true),media=!!c.querySelector('canvas,iframe');
+      c.querySelectorAll('.row,.app,canvas,iframe,img').forEach(e=>e.remove());
+      let tx=c.textContent.trim();
+      if(media)tx+=(tx?'\n':'')+'[видео/картинка/приложение не сохраняются — можно сделать заново]';
+      msgs.push({c:m.classList.contains('u')?'u':'b',t:tx.slice(0,4000)});
+    }
+    return msgs;
+  }
+  function save(){
+    if(window.NOSAVE)return;
+    const msgs=snap(),first=msgs.find(m=>m.c==='u');if(!first)return;
+    if(!cur)cur='s'+Date.now();
+    const s={id:cur,title:first.t.slice(0,60),ts:Date.now(),msgs,hist:hist.slice(-20),p:{SYS,nm:nm.textContent,tg:tg.textContent,av:av.textContent}};
+    let L=[s,...ld(SK).filter(x=>x.id!==cur)].slice(0,200);
+    for(let k=0;k<12;k++){try{localStorage.setItem(SK,JSON.stringify(L));break}catch(e){L=L.slice(0,Math.max(1,L.length-20))}}
+  }
+  new MutationObserver(()=>{clearTimeout(tm);tm=setTimeout(save,700)}).observe(log,{childList:true,subtree:true,characterData:true});
+  const dr=document.createElement('div');dr.id='dr';
+  dr.innerHTML='<div class="dh"><b>🕘 История</b><button id="dn">➕ Новый чат</button><button id="dx">✕</button></div><input id="dq" type="search" placeholder="Поиск по истории…"><div id="dsq"></div><div id="dl"></div><button id="dc">🗑 Очистить всю историю</button>';
+  document.body.appendChild(dr);
+  const dq=dr.querySelector('#dq'),dl=dr.querySelector('#dl'),dsq=dr.querySelector('#dsq');
+  const fmt=ts=>new Date(ts).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  function openS(s){
+    cur=s.id;log.innerHTML='';add('b',GREET).dataset.g='1';
+    s.msgs.forEach(m=>add(m.c,m.t));
+    hist.length=0;hist.push(...(s.hist||[]));
+    if(s.p){SYS=s.p.SYS;nm.textContent=s.p.nm;tg.textContent=s.p.tg;av.textContent=s.p.av}
+    dr.classList.remove('on');log.scrollTop=log.scrollHeight;
+  }
+  function newChat(){
+    cur=null;log.innerHTML='';add('b',GREET).dataset.g='1';hist.length=0;SYS=DEF;
+    nm.textContent='Юки GPT';tg.textContent='умный ИИ-помощник';av.textContent='❄️';dr.classList.remove('on');
+  }
+  function render(){
+    const q=dq.value.trim().toLowerCase(),all=ld(SK);
+    const items=all.filter(s=>!q||s.title.toLowerCase().includes(q)||s.msgs.some(m=>m.t.toLowerCase().includes(q)));
+    dl.innerHTML='';
+    if(!items.length){const p=document.createElement('p');p.className='e';p.textContent=all.length?'Ничего не найдено':'Пока пусто — твои запросы появятся здесь';dl.appendChild(p)}
+    items.forEach(s=>{
+      const d=document.createElement('div');d.className='it';
+      d.innerHTML='<div class="tt"></div><small></small><button class="rm">🗑</button>';
+      d.querySelector('.tt').textContent=s.title;
+      d.querySelector('small').textContent=fmt(s.ts)+' · запросов: '+s.msgs.filter(m=>m.c==='u').length;
+      d.onclick=e=>{if(e.target.className==='rm'){sv(SK,ld(SK).filter(x=>x.id!==s.id));if(cur===s.id)cur=null;render();return}openS(s)};
+      dl.appendChild(d);
+    });
+    dsq.innerHTML='';
+    ld(QK).forEach(x=>{const b=document.createElement('button');b.textContent='🔍 '+x;b.onclick=()=>{dq.value=x;render()};dsq.appendChild(b)});
+  }
+  dq.oninput=render;
+  dq.onchange=()=>{const v=dq.value.trim();if(v)sv(QK,[v,...ld(QK).filter(x=>x!==v)].slice(0,8));render()};
+  dr.querySelector('#dx').onclick=()=>dr.classList.remove('on');
+  dr.querySelector('#dn').onclick=newChat;
+  dr.querySelector('#dc').onclick=()=>{sv(SK,[]);sv(QK,[]);cur=null;render()};
+  const hb=document.createElement('button');hb.id='hb';hb.title='История';hb.textContent='🕘';
+  hb.onclick=()=>{dq.value='';render();dr.classList.add('on')};
+  document.querySelector('header').appendChild(hb);
+})();
+
+function makeAnime(q){
+  window.STY=' Стиль: аниме-арт персонажа (взрослая девушка, полностью одетая, стильная и милая, без сексуального подтекста), портрет по пояс или в полный рост. Большие выразительные глаза с градиентом и бликами, детализированные волосы с прядями и бликами, чёткие контуры, мягкое cel-shading, красивый фон с градиентом и частицами.';
+  return makeImage(q);
+}
+
+function vext(b){return b.type.includes('mp4')?'mp4':'webm'}
+function addShare(row,getBlob,name,type){
+  const b=document.createElement('button'),L='\ud83d\udce4 \u041f\u043e\u0434\u0435\u043b\u0438\u0442\u044c\u0441\u044f / \u0432 \u0433\u0430\u043b\u0435\u0440\u0435\u044e';
+  b.textContent=L;
+  b.onclick=async()=>{
+    const blob=await getBlob();if(!blob)return;
+    try{const f=new File([blob],name,{type});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f]});return}}catch(e){if(e&&e.name==='AbortError')return}
+    const dl=await claude.use('downloads');if(dl)dl.save({filename:name,data:blob}).catch(()=>{});
+    b.textContent='\u2714 \u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u043e';setTimeout(()=>b.textContent=L,2000);
+  };
+  row.appendChild(b);
+}
+/* ===== SD-панель ===== */
+(()=>{
+  const PY=String.raw`# Установка (один раз):
+#   pip install torch diffusers transformers accelerate safetensors gradio
+# Запуск:
+#   python ai_image_generator.py
+
+import torch
+import gradio as gr
+from diffusers import StableDiffusionPipeline, DPMSolverMultistepScheduler
+
+MODEL = "stable-diffusion-v1-5/stable-diffusion-v1-5"
+
+# cuda (видеокарта NVIDIA), mps (Mac на Apple Silicon) или cpu
+if torch.cuda.is_available():
+    device = "cuda"
+elif torch.backends.mps.is_available():
+    device = "mps"
+else:
+    device = "cpu"
+
+dtype = torch.float16 if device == "cuda" else torch.float32
+
+print(f"Загрузка ИИ-модели на {device}...")
+
+pipe = StableDiffusionPipeline.from_pretrained(
+    MODEL,
+    torch_dtype=dtype,
+    use_safetensors=True,
+)
+# Быстрый планировщик: хорошее качество уже за 20-25 шагов
+pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
+pipe = pipe.to(device)
+# Экономит память на любом устройстве
+pipe.enable_attention_slicing()
+
+
+def generate(prompt, negative_prompt, steps, guidance, seed):
+    if not prompt or not prompt.strip():
+        raise gr.Error("Опиши, что нужно нарисовать.")
+
+    generator = None
+    if seed is not None and int(seed) >= 0:
+        generator = torch.Generator(device="cpu").manual_seed(int(seed))
+
+    try:
+        result = pipe(
+            prompt=prompt.strip(),
+            negative_prompt=(negative_prompt or "").strip() or None,
+            num_inference_steps=int(steps),
+            guidance_scale=float(guidance),
+            width=512,
+            height=512,
+            generator=generator,
+        )
+    except RuntimeError as e:
+        raise gr.Error(f"Ошибка генерации (возможно, не хватает памяти): {e}")
+
+    return result.images[0]
+
+
+interface = gr.Interface(
+    fn=generate,
+    inputs=[
+        gr.Textbox(
+            label="Опиши изображение",
+            placeholder="Например: реалистичный футуристический город...",
+        ),
+        gr.Textbox(
+            label="Что исключить",
+            placeholder="blurry, low quality",
+        ),
+        gr.Slider(10, 50, value=25, step=1, label="Качество (шаги)"),
+        gr.Slider(1, 15, value=7.5, step=0.5, label="Точность описания"),
+        gr.Number(value=-1, precision=0, label="Seed (-1 = случайный)"),
+    ],
+    outputs=gr.Image(label="Результат"),
+    title="MY AI IMAGE GENERATOR",
+    description="Генерация изображений с помощью искусственного интеллекта",
+)
+
+if __name__ == "__main__":
+    # Чтобы открыть с телефона в той же сети: server_name="0.0.0.0"
+    interface.launch()
+`;
+  const sd=document.createElement('div');sd.id='sd';
+  sd.style.cssText='display:none;flex-direction:column;gap:6px;padding:8px 12px;background:var(--panel);border-top:1px solid var(--line);font-size:13px;color:var(--muted)';
+  sd.innerHTML='<input id="ng" placeholder="Что исключить: blurry, low quality" style="border:1px solid var(--line);background:var(--bg);color:var(--text);border-radius:12px;padding:8px 12px;font:inherit;font-size:14px;outline:none"><label>Качество: <b id="spv">25</b> <input id="sp" type="range" min="10" max="50" step="1" value="25" style="width:100%"></label><label>Точность описания: <b id="gdv">7.5</b> <input id="gd" type="range" min="1" max="15" step="0.5" value="7.5" style="width:100%"></label><button id="pyb" style="width:auto;height:auto;border-radius:14px;padding:8px 12px;font-size:13px;background:var(--bot);color:var(--text)">\ud83d\udda5 \u0421\u043a\u0430\u0447\u0430\u0442\u044c SD-\u0433\u0435\u043d\u0435\u0440\u0430\u0442\u043e\u0440 (.py)</button>';
+  document.getElementById('bar').before(sd);
+  const ng=sd.querySelector('#ng'),sp=sd.querySelector('#sp'),gd=sd.querySelector('#gd');
+  sp.oninput=()=>sd.querySelector('#spv').textContent=sp.value;
+  gd.oninput=()=>sd.querySelector('#gdv').textContent=gd.value;
+  sd.querySelector('#pyb').onclick=async()=>{
+    const dl=await claude.use('downloads');if(!dl)return;
+    dl.save({filename:'ai_image_generator.py',data:PY}).catch(()=>dl.save({filename:'ai_image_generator.txt',data:PY}).catch(()=>{}));
+  };
+  let base='';
+  Object.defineProperty(window,'STY',{configurable:true,get(){
+    let x=base;
+    if(mode==='img'||mode==='anime'){
+      const n=ng.value.trim();if(n)x+=' \u041d\u0415 \u0440\u0438\u0441\u0443\u0439 \u0438 \u0438\u0437\u0431\u0435\u0433\u0430\u0439: '+n+'.';
+      const st=+sp.value,g=+gd.value;
+      x+=st>=35?' \u041c\u0430\u043a\u0441\u0438\u043c\u0430\u043b\u044c\u043d\u0430\u044f \u0434\u0435\u0442\u0430\u043b\u0438\u0437\u0430\u0446\u0438\u044f.':st<=18?' \u041f\u0440\u043e\u0441\u0442\u0430\u044f \u0447\u0438\u0441\u0442\u0430\u044f \u043a\u043e\u043c\u043f\u043e\u0437\u0438\u0446\u0438\u044f.':'';
+      x+=g>=11?' \u0421\u0442\u0440\u043e\u0433\u043e \u0441\u043b\u0435\u0434\u0443\u0439 \u043e\u043f\u0438\u0441\u0430\u043d\u0438\u044e, \u0431\u0435\u0437 \u0432\u043e\u043b\u044c\u043d\u043e\u0441\u0442\u0435\u0439.':g<=4?' \u041c\u043e\u0436\u043d\u043e \u0434\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0444\u0430\u043d\u0442\u0430\u0437\u0438\u0438.':'';
+    }
+    return x;
+  },set(v){base=v||''}});
+  const _sm=setMode;
+  setMode=function(m){_sm(m);sd.style.display=(mode==='img'||mode==='anime')?'flex':'none'};
+})();
+
+/* ===== MY AI: память, настройки, голос ===== */
+const CK='yuki:cfg',MK='yuki:mem';
+const lds=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}};
+const sts=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+let cfg=Object.assign({style:'gpt',char:'normal',cust:'',theme:'auto',mode:'normal',tier:'complex',voice:false,vname:'',rate:1,autoSend:true,save:true},lds(CK,{}));
+let memo=lds(MK,[]);
+const MODES={normal:'',short:' Отвечай очень кратко.',long:' Отвечай подробно, с примерами и шагами.',teacher:' Объясняй как учитель: простыми словами, по шагам, проверяй понимание.',coder:' Отвечай как сильный программист: готовый код, разбор ошибок, лучшие практики.',games:' Режим знатока игр: отвечай как опытный игрок Roblox и других игр: конкретные советы, билды, стратегии, порядок прокачки, и предупреждай, если данные могли устареть.',science:' Научный режим: точные формулировки, формулы, оговорки о неопределённости.'};
+const CHARS={sarc:' Характер: язвительный и остроумный, с лёгкой иронией, но всегда по делу и доброжелательный.',tsun:' Характер: цундэрэ — сначала ворчишь и отнекиваешься, но на деле помогаешь отлично и по-доброму, без пошлости.',strict:' Характер: строгий, но справедливый учитель: требуешь точности, разбираешь ошибки.',pirate:' Характер: весёлый пират, говоришь образно, с морскими словечками.',cute:' Характер: милая и тёплая подруга в стиле аниме, много позитива и эмодзи.',prof:' Характер: серьёзный профессор: глубоко, структурно, с терминами и пояснениями.',gamer:' Характер: заряженный геймер: энергичный сленг, мемы, азарт.'};
+function extra(){let x='';if(memo.length)x+=' Что ты помнишь о пользователе (учитывай, не повторяй без нужды): '+memo.join('; ')+'.';return x+(MODES[cfg.mode]||'')+(cfg.cust?' Твой характер: '+cfg.cust+'.':(CHARS[cfg.char]||''))}
+function memAdd(v){memo.unshift(v.slice(0,200));memo=memo.slice(0,50);sts(MK,memo)}
+function applyCfg(){
+  const r=document.documentElement;
+  if(cfg.theme==='auto')r.removeAttribute('data-theme');else r.dataset.theme=cfg.theme;
+  r.classList.toggle('gpt',cfg.style!=='classic');
+  window.NOSAVE=!cfg.save;sts(CK,cfg);
+}
+function speak(tx){
+  if(!cfg.voice||!window.speechSynthesis)return;
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(String(tx).replace(/[`*#_]/g,'').slice(0,700));u.lang='ru-RU';u.rate=cfg.rate;const v=speechSynthesis.getVoices().find(x=>x.name===cfg.vname);if(v)u.voice=v;speechSynthesis.speak(u)}catch(e){}
+}
+applyCfg();
+(()=>{
+  const st=document.createElement('style');
+  st.textContent=':root[data-theme="light"]{--bg:#f4f5ff;--panel:#fff;--bot:#e9ebff;--text:#161830;--muted:#6a6f99;--line:#0000001a;color-scheme:light}#st{position:fixed;inset:0;z-index:61;background:var(--bg);display:none;flex-direction:column;overflow-y:auto;padding:calc(10px + env(safe-area-inset-top,0px)) 14px calc(20px + env(safe-area-inset-bottom,0px));gap:8px;color:var(--text)}#st.on{display:flex}#st h4{margin:12px 0 2px;color:var(--muted);font-size:13px;font-weight:600}#st select,#st input[type=text]{width:100%;box-sizing:border-box;border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:12px;padding:10px 12px;font:inherit;font-size:15px}#st .mi{display:flex;gap:6px;margin-bottom:6px}#st .mi button,#st .sb{width:auto;height:auto;border-radius:12px;padding:8px 12px;font-size:14px;background:var(--bot);color:var(--text)}#st label.ck{display:flex;gap:8px;align-items:center;font-size:15px}#mic{flex:none;background:var(--bot);color:var(--text)}#mic.rec{background:#e63946;color:#fff}';
+  document.head.appendChild(st);
+  const GC='html.gpt{--bg:#212121;--panel:#212121;--bot:#2f2f2f;--text:#ececec;--muted:#9b9b9b;--line:#ffffff1a;--me:#303030;--me-t:#ececec;color-scheme:dark}@media (prefers-color-scheme:light){html.gpt:root:not([data-theme="dark"]){--bg:#fff;--panel:#fff;--bot:#f4f4f4;--text:#0d0d0d;--muted:#6b6b6b;--line:#0000001a;--me:#f4f4f4;--me-t:#0d0d0d;color-scheme:light}}html.gpt:root[data-theme="light"]{--bg:#fff;--panel:#fff;--bot:#f4f4f4;--text:#0d0d0d;--muted:#6b6b6b;--line:#0000001a;--me:#f4f4f4;--me-t:#0d0d0d;color-scheme:light}html.gpt header{background:var(--bg);border-bottom:0}html.gpt .ava,html.gpt header small{display:none}html.gpt header b{font-size:17px;font-weight:600}html.gpt #log{padding:12px 16px;gap:20px}html.gpt .m{font-size:16px;line-height:1.65}html.gpt .m.u{background:var(--me);color:var(--me-t);border-radius:22px;max-width:82%;padding:10px 16px}html.gpt .m.b{background:transparent;padding:0 2px;border-radius:0;max-width:100%}html.gpt #chips{background:var(--bg);border-bottom:0}html.gpt #chips button{background:transparent;border:1px solid var(--line);color:var(--muted)}html.gpt #chips button.on{background:var(--bot);color:var(--text);border-color:transparent}html.gpt #bar{background:var(--bg);border-top:0}html.gpt textarea{background:var(--bot);border:0;border-radius:26px;padding:12px 18px}html.gpt #s{background:var(--text);color:var(--bg)}html.gpt #clip,html.gpt #mic{background:var(--bot);color:var(--text)}html.gpt .row button{background:var(--bot);border:0;color:var(--text)}';
+  const gs=document.createElement('style');gs.textContent=GC;document.head.appendChild(gs);
+  const P=document.createElement('div');P.id='st';
+  P.innerHTML='<div class="dh"><b>⚙️ Настройки MY AI</b><button id="sx">✕</button></div>'
+  +'<h4>ВНЕШНИЙ ВИД</h4><select id="s1"><option value="auto">Тема: как в телефоне</option><option value="light">Светлая</option><option value="dark">Тёмная</option></select>'
+  +'<h4>СТИЛЬ ИНТЕРФЕЙСА</h4><select id="s9"><option value="gpt">Как в ChatGPT</option><option value="classic">Классический</option></select>'
+  +'<h4>ХАРАКТЕР ИИ</h4><select id="sc"><option value="normal">Дружелюбный (по умолчанию)</option><option value="sarc">Язвительный</option><option value="tsun">Цундэрэ</option><option value="strict">Строгий учитель</option><option value="pirate">Пират</option><option value="cute">Милая (аниме)</option><option value="prof">Профессор</option><option value="gamer">Геймер</option></select><input type="text" id="scc" placeholder="Или опиши свой характер…">'
+  +'<h4>РЕЖИМ ОТВЕТА</h4><select id="s2"><option value="normal">Обычный</option><option value="short">Кратко</option><option value="long">Подробно</option><option value="teacher">Учитель</option><option value="coder">Программист</option><option value="science">Научный</option><option value="games">Знаток игр</option></select>'
+  +'<h4>МОДЕЛЬ</h4><select id="s3"><option value="complex">Умная (точнее, медленнее)</option><option value="quick">Быстрая</option></select>'
+  +'<h4>ГОЛОС</h4><label class="ck"><input type="checkbox" id="s4"> Озвучивать ответы</label><select id="s5"></select><label class="ck">Скорость <input type="range" id="s6" min="0.7" max="1.5" step="0.1" style="flex:1"></label><label class="ck"><input type="checkbox" id="s7"> Отправлять сразу после речи</label>'
+  +'<h4>ПАМЯТЬ</h4><div id="ml"></div><div class="mi"><input type="text" id="mn" placeholder="Что запомнить? Например: я люблю космос"><button id="ma">➕</button></div>'
+  +'<h4>ПРИВАТНОСТЬ</h4><label class="ck"><input type="checkbox" id="s8"> Сохранять историю разговоров</label><button class="sb" id="mc" style="align-self:flex-start">🗑 Стереть память</button>';
+  document.body.appendChild(P);
+  const $=i=>P.querySelector('#'+i);
+  $('s1').value=cfg.theme;$('s9').value=cfg.style;$('sc').value=cfg.char;$('scc').value=cfg.cust;$('s2').value=cfg.mode;$('s3').value=cfg.tier;$('s4').checked=cfg.voice;$('s6').value=cfg.rate;$('s7').checked=cfg.autoSend;$('s8').checked=cfg.save;
+  $('s1').onchange=e=>{cfg.theme=e.target.value;applyCfg()};
+  $('s9').onchange=e=>{cfg.style=e.target.value;applyCfg()};
+  $('sc').onchange=e=>{cfg.char=e.target.value;cfg.cust='';$('scc').value='';applyCfg()};
+  $('scc').onchange=e=>{cfg.cust=e.target.value.trim();applyCfg()};
+  $('s2').onchange=e=>{cfg.mode=e.target.value;applyCfg()};
+  $('s3').onchange=e=>{cfg.tier=e.target.value;applyCfg()};
+  $('s4').onchange=e=>{cfg.voice=e.target.checked;if(!cfg.voice)try{speechSynthesis.cancel()}catch(x){}applyCfg()};
+  $('s5').onchange=e=>{cfg.vname=e.target.value;applyCfg()};
+  $('s6').oninput=e=>{cfg.rate=+e.target.value;applyCfg()};
+  $('s7').onchange=e=>{cfg.autoSend=e.target.checked;applyCfg()};
+  $('s8').onchange=e=>{cfg.save=e.target.checked;applyCfg()};
+  const ml=$('ml');
+  function rm(){
+    ml.innerHTML='';
+    memo.forEach((m,i)=>{const d=document.createElement('div');d.className='mi';const inp=document.createElement('input');inp.type='text';inp.value=m;
+      inp.onchange=()=>{memo[i]=inp.value.trim();memo=memo.filter(Boolean);sts(MK,memo);rm()};
+      const b=document.createElement('button');b.textContent='🗑';b.onclick=()=>{memo.splice(i,1);sts(MK,memo);rm()};
+      d.append(inp,b);ml.appendChild(d)});
+    if(!memo.length)ml.textContent='Пока пусто. Скажи в чате «запомни: …» или добавь здесь.';
+  }
+  $('ma').onclick=()=>{const v=$('mn').value.trim();if(v){memAdd(v);$('mn').value='';rm()}};
+  $('mc').onclick=()=>{memo=[];sts(MK,memo);rm()};
+  const vs=$('s5');
+  function pv(){vs.innerHTML='<option value="">Голос по умолчанию</option>';(window.speechSynthesis?speechSynthesis.getVoices():[]).filter(v=>/^(ru|en)/i.test(v.lang)).forEach(v=>{const o=document.createElement('option');o.value=v.name;o.textContent=v.name+' ('+v.lang+')';vs.appendChild(o)});vs.value=cfg.vname}
+  if(window.speechSynthesis){pv();speechSynthesis.onvoiceschanged=pv}
+  $('sx').onclick=()=>P.classList.remove('on');
+  const hd=document.querySelector('header');
+  for(const [ic,tt,sc] of [['🧠','Память',true],['⚙️','Настройки',false]]){
+    const b=document.createElement('button');b.textContent=ic;b.title=tt;b.style.cssText='width:40px;height:40px;background:var(--bot);color:var(--text);flex:none';
+    b.onclick=()=>{rm();pv();P.classList.add('on');if(sc)ml.scrollIntoView()};hd.appendChild(b);
+  }
+  document.getElementById('hb').style.marginLeft='auto';
+  const mic=document.createElement('button');mic.id='mic';mic.textContent='🎤';mic.title='Говорить';
+  document.getElementById('bar').insertBefore(mic,t);
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rc=null;
+  mic.onclick=()=>{
+    try{speechSynthesis.cancel()}catch(e){}
+    if(rc){rc.stop();return}
+    if(!SR){add('b err','Голосовой ввод не поддерживается в этом браузере.');return}
+    rc=new SR();rc.lang='ru-RU';rc.interimResults=true;
+    rc.onresult=e=>{t.value=[...e.results].map(x=>x[0].transcript).join('');if(e.results[e.results.length-1].isFinal&&cfg.autoSend)setTimeout(send,200)};
+    rc.onerror=e=>add('b err','Микрофон недоступен ('+e.error+'). Разреши странице доступ к микрофону.');
+    rc.onend=()=>{rc=null;mic.classList.remove('rec')};
+    mic.classList.add('rec');rc.start();
+  };
+})();
+
+s.onclick=send;
+t.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
+t.addEventListener('input',()=>{t.style.height='auto';t.style.height=Math.min(t.scrollHeight,120)+'px'});
+</script>
+</body>
+</html>
